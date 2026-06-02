@@ -422,9 +422,11 @@
       transition: box-shadow 0.16s ease, transform 0.16s ease;
     }
 
-    .todo-item:hover {
+    .todo-item:hover,
+    .todo-item.menu-open {
       box-shadow: 0 14px 28px rgba(31, 85, 130, 0.12);
       transform: translateY(-1px);
+      z-index: 20;
     }
 
     .todo-item.completed {
@@ -607,7 +609,7 @@
       position: absolute;
       top: 36px;
       right: 0;
-      z-index: 5;
+      z-index: 30;
       display: none;
       min-width: 66px;
       padding: 8px;
@@ -1139,6 +1141,7 @@
           closePriorityMenus();
           priorityMenu.classList.toggle("open", !isOpen);
           actions.classList.toggle("menu-open", !isOpen);
+          item.classList.toggle("menu-open", !isOpen);
         });
 
         priorityAction.append(priorityButton, priorityMenu);
@@ -1310,6 +1313,9 @@
       });
       document.querySelectorAll(".todo-actions.menu-open").forEach((actions) => {
         actions.classList.remove("menu-open");
+      });
+      document.querySelectorAll(".todo-item.menu-open").forEach((item) => {
+        item.classList.remove("menu-open");
       });
     }
 
