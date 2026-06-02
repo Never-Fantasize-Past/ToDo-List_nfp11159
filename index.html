@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的待办清单</title>
+  <style>
+    :root {
+      --blue-50: #eff8ff;
+      --blue-100: #dbefff;
+      --blue-500: #2d8cff;
+      --blue-600: #1675e8;
+      --blue-700: #0f5fbd;
+      --text: #1f2d3d;
+      --muted: #6b7a90;
+      --border: #d9e7f5;
+      --danger: #e5484d;
+      --warning: #f59e0b;
+      --success: #16a34a;
+      --surface: #ffffff;
+      --shadow: 0 18px 45px rgba(34, 109, 180, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, #eaf6ff 0%, #f2eaff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .app {
+      width: min(100%, 680px);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 30px;
+      backdrop-filter: blur(12px);
+    }
+
+    .app-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(84px, 1fr));
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .stat {
+      min-width: 84px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: var(--blue-50);
+      border: 1px solid var(--blue-100);
+      text-align: center;
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--blue-700);
+      font-size: 24px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .todo-form {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .todo-input,
+    .priority-select {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 15px 16px;
+      color: var(--text);
+      background: var(--surface);
+      font-size: 16px;
+      outline: none;
+      box-shadow: 0 8px 20px rgba(20, 103, 176, 0.08);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .priority-select {
+      flex: 0 0 118px;
+      cursor: pointer;
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--blue-700) 50%),
+        linear-gradient(135deg, var(--blue-700) 50%, transparent 50%);
+      background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      padding-right: 34px;
+    }
+
+    .todo-input:focus,
+    .priority-select:focus {
+      border-color: var(--blue-500);
+      box-shadow: 0 0 0 4px rgba(45, 140, 255, 0.14);
+    }
+
+    .add-button,
+    .header-icon-button,
+    .clear-all-button,
+    .filter-button,
+    .back-button,
+    .restore-button,
+    .permanent-delete-button,
+    .edit-button,
+    .priority-action-button,
+    .priority-option,
+    .delete-button {
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .add-button {
+      flex: 0 0 auto;
+      border-radius: 16px;
+      padding: 0 22px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
+      font-weight: 700;
+      box-shadow: 0 10px 22px rgba(45, 140, 255, 0.28);
+    }
+
+    .add-button:hover {
+      background: linear-gradient(135deg, #3a98ff, var(--blue-600));
+      transform: translateY(-1px);
+      box-shadow: 0 14px 26px rgba(45, 140, 255, 0.32);
+    }
+
+    .add-button:active,
+    .header-icon-button:active,
+    .clear-all-button:active,
+    .filter-button:active,
+    .back-button:active,
+    .restore-button:active,
+    .permanent-delete-button:active,
+    .edit-button:active,
+    .priority-action-button:active,
+    .priority-option:active,
+    .delete-button:active {
+      transform: translateY(0);
+    }
+
+    .title-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon-button {
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 14px;
+      color: var(--danger);
+      background: #fff1f1;
+      border: 1px solid #ffd1d1;
+      box-shadow: 0 8px 18px rgba(229, 72, 77, 0.1);
+    }
+
+    .header-icon-button:hover {
+      background: #ffe4e4;
+      transform: translateY(-1px);
+    }
+
+    .header-icon-button.hidden {
+      display: none;
+    }
+
+    .view.hidden {
+      display: none;
+    }
+
+    .filter-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .filter-button {
+      min-height: 42px;
+      border-radius: 14px;
+      color: var(--blue-700);
+      background: rgba(237, 247, 255, 0.88);
+      border: 1px solid var(--blue-100);
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 8px 18px rgba(34, 109, 180, 0.08);
+    }
+
+    .filter-button.active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
+      border-color: transparent;
+      box-shadow: 0 10px 22px rgba(45, 140, 255, 0.22);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .trash-view {
+      display: grid;
+      gap: 14px;
+    }
+
+    .trash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .trash-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1.3;
+    }
+
+    .back-button,
+    .restore-button,
+    .permanent-delete-button {
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .back-button,
+    .restore-button {
+      color: var(--blue-700);
+      background: #edf7ff;
+      border: 1px solid var(--blue-100);
+    }
+
+    .permanent-delete-button {
+      color: var(--danger);
+      background: #fff1f1;
+      border: 1px solid #ffd1d1;
+    }
+
+    .back-button:hover,
+    .restore-button:hover {
+      background: #e3f2ff;
+      box-shadow: 0 8px 16px rgba(34, 109, 180, 0.1);
+    }
+
+    .permanent-delete-button:hover {
+      background: #ffe4e4;
+      box-shadow: 0 8px 16px rgba(229, 72, 77, 0.12);
+    }
+
+    .trash-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    .trash-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(
+        90deg,
+        var(--priority-fill) 0 var(--progress-width),
+        var(--priority-bg) var(--progress-width) 100%
+      );
+      box-shadow: 0 10px 24px rgba(31, 85, 130, 0.08);
+    }
+
+    .trash-item.priority-high {
+      --priority-bg: #fff7f7;
+      --priority-fill: #ffe0e0;
+      border-color: #f04438;
+      border-left: 4px solid #f04438;
+    }
+
+    .trash-item.priority-medium {
+      --priority-bg: #fffceb;
+      --priority-fill: #fff0a8;
+      border-color: #eab308;
+      border-left: 4px solid #eab308;
+    }
+
+    .trash-item.priority-low {
+      --priority-bg: #effdf4;
+      --priority-fill: #d7f8e2;
+      border-color: #22c55e;
+      border-left: 4px solid #22c55e;
+    }
+
+    .trash-content {
+      min-width: 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .trash-meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .clear-all-button {
+      border-radius: 14px;
+      padding: 10px 14px;
+      color: var(--blue-700);
+      background: #edf7ff;
+      border: 1px solid var(--blue-100);
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 8px 18px rgba(34, 109, 180, 0.08);
+    }
+
+    .clear-all-button {
+      color: var(--danger);
+      background: #fff1f1;
+      border-color: #ffd1d1;
+    }
+
+    .clear-all-button:hover:not(:disabled) {
+      background: #e3f2ff;
+      box-shadow: 0 10px 22px rgba(34, 109, 180, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .clear-all-button:hover:not(:disabled) {
+      background: #ffe4e4;
+      box-shadow: 0 10px 22px rgba(229, 72, 77, 0.12);
+    }
+
+    .clear-all-button:disabled {
+      color: #94a8bd;
+      background: #f4f8fb;
+      border-color: var(--border);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .todo-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    .todo-item {
+      --progress-width: 0%;
+      position: relative;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(
+        90deg,
+        var(--priority-fill) 0 var(--progress-width),
+        var(--priority-bg) var(--progress-width) 100%
+      );
+      box-shadow: 0 10px 24px rgba(31, 85, 130, 0.08);
+      cursor: pointer;
+      transition: box-shadow 0.16s ease, transform 0.16s ease;
+    }
+
+    .todo-item:hover {
+      box-shadow: 0 14px 28px rgba(31, 85, 130, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .todo-item.completed {
+      cursor: default;
+    }
+
+    .todo-item.priority-high {
+      --priority-bg: #fff7f7;
+      --priority-fill: #ffe0e0;
+      border-color: #f04438;
+      border-left: 4px solid #f04438;
+    }
+
+    .todo-item.priority-medium {
+      --priority-bg: #fffceb;
+      --priority-fill: #fff0a8;
+      border-color: #eab308;
+      border-left: 4px solid #eab308;
+    }
+
+    .todo-item.priority-low {
+      --priority-bg: #effdf4;
+      --priority-fill: #d7f8e2;
+      border-color: #22c55e;
+      border-left: 4px solid #22c55e;
+    }
+
+    .todo-checkbox {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--blue-600);
+      cursor: pointer;
+    }
+
+    .todo-content {
+      min-width: 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .todo-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+      font-size: 16px;
+    }
+
+    .priority-badge {
+      width: fit-content;
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .todo-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .priority-badge.priority-high {
+      color: #b42318;
+      background: #ffe5e5;
+    }
+
+    .priority-badge.priority-medium {
+      color: #9a5a00;
+      background: #fff3bc;
+    }
+
+    .priority-badge.priority-low {
+      color: #0f7a3b;
+      background: #dff8e8;
+    }
+
+    .status-badge {
+      width: fit-content;
+      border-radius: 999px;
+      padding: 4px 9px;
+      color: var(--blue-700);
+      background: #edf7ff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .status-badge.status-pending {
+      color: #65758b;
+      background: #f1f5f9;
+    }
+
+    .status-badge.status-progress {
+      color: #0f5fbd;
+      background: #e8f4ff;
+    }
+
+    .status-badge.status-completed {
+      color: #0f7a3b;
+      background: #eaf8ef;
+    }
+
+    .todo-item.completed .todo-text {
+      color: var(--muted);
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+      text-decoration-color: rgba(22, 117, 232, 0.65);
+    }
+
+    .todo-actions {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.16s ease;
+    }
+
+    .todo-item:hover .todo-actions,
+    .todo-actions.menu-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .edit-button,
+    .priority-action-button,
+    .delete-button {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 12px;
+      padding: 0;
+      background: transparent;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .edit-button {
+      color: var(--blue-700);
+    }
+
+    .edit-button:hover {
+      background: rgba(45, 140, 255, 0.12);
+      box-shadow: 0 8px 16px rgba(34, 109, 180, 0.12);
+    }
+
+    .priority-action-button {
+      color: #8b7bb8;
+    }
+
+    .priority-action-button:hover {
+      background: rgba(139, 123, 184, 0.14);
+      box-shadow: 0 8px 16px rgba(87, 68, 145, 0.12);
+    }
+
+    .delete-button {
+      color: var(--danger);
+    }
+
+    .delete-button:hover {
+      background: rgba(229, 72, 77, 0.12);
+      box-shadow: 0 8px 16px rgba(229, 72, 77, 0.14);
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      display: block;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .priority-menu {
+      position: absolute;
+      top: 36px;
+      right: 0;
+      z-index: 5;
+      display: none;
+      min-width: 66px;
+      padding: 8px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid #e4ebf5;
+      box-shadow: 0 14px 28px rgba(31, 85, 130, 0.16);
+    }
+
+    .priority-menu.open {
+      display: grid;
+      gap: 4px;
+    }
+
+    .priority-option {
+      display: grid;
+      grid-template-columns: 12px auto;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      padding: 4px 6px;
+      border-radius: 8px;
+      color: var(--text);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .priority-option:hover,
+    .priority-option.active {
+      background: #f4f8fb;
+    }
+
+    .priority-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px rgba(31, 45, 61, 0.08);
+    }
+
+    .priority-dot.priority-high {
+      background: #f04438;
+    }
+
+    .priority-dot.priority-medium {
+      background: #eab308;
+    }
+
+    .priority-dot.priority-low {
+      background: #22c55e;
+    }
+
+    .empty-state {
+      display: none;
+      margin: 8px 0 0;
+      padding: 26px 16px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed #b9d9f7;
+      border-radius: 18px;
+      background: rgba(239, 248, 255, 0.74);
+      line-height: 1.6;
+      font-weight: 600;
+    }
+
+    .empty-state.visible {
+      display: block;
+    }
+
+    .overall-progress {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(239, 248, 255, 0.74);
+      border: 1px solid var(--blue-100);
+      box-shadow: 0 10px 24px rgba(31, 85, 130, 0.06);
+    }
+
+    .overall-progress-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .overall-progress-value {
+      color: var(--blue-700);
+    }
+
+    .overall-progress-track {
+      height: 12px;
+      border-radius: 999px;
+      background: #dcecf8;
+      overflow: hidden;
+    }
+
+    .overall-progress-bar {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue-500), #9b7cff);
+      transition: width 0.2s ease;
+    }
+
+    @media (max-width: 560px) {
+      body {
+        align-items: flex-start;
+        padding: 18px 12px;
+      }
+
+      .app {
+        padding: 20px;
+        border-radius: 20px;
+      }
+
+      .app-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .todo-form {
+        flex-direction: column;
+      }
+
+      .priority-select {
+        flex-basis: auto;
+        width: 100%;
+      }
+
+      .add-button {
+        width: 100%;
+        min-height: 50px;
+      }
+
+      .toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .trash-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .filter-tabs {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .clear-all-button {
+        width: 100%;
+        min-height: 44px;
+      }
+
+      .todo-item {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .todo-actions {
+        grid-column: 2;
+        justify-self: start;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .trash-item {
+        grid-template-columns: 1fr;
+      }
+
+      .restore-button,
+      .permanent-delete-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-labelledby="app-title">
+    <header class="app-header">
+      <div>
+        <div class="title-line">
+          <h1 id="app-title">📝 我的待办清单</h1>
+          <button class="header-icon-button" id="recycle-bin-button" type="button" title="回收站" aria-label="打开回收站">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18"></path>
+              <path d="M8 6V4h8v2"></path>
+              <path d="M19 6l-1 16H6L5 6"></path>
+              <path d="M10 11v6"></path>
+              <path d="M14 11v6"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="subtitle">记录今天要处理的事情，完成后勾选即可。</p>
+      </div>
+      <section class="stats" aria-label="任务统计">
+        <div class="stat">
+          <strong id="active-count">0</strong>
+          <span>未完成</span>
+        </div>
+        <div class="stat">
+          <strong id="completed-count">0</strong>
+          <span>已完成</span>
+        </div>
+      </section>
+    </header>
+
+    <section class="view" id="list-view">
+      <form class="todo-form" id="todo-form">
+        <input
+          class="todo-input"
+          id="todo-input"
+          type="text"
+          placeholder="今天要做什么？"
+          autocomplete="off"
+          maxlength="120"
+          aria-label="任务内容"
+        >
+        <select class="priority-select" id="priority-select" aria-label="任务优先级">
+          <option value="high">高优先级</option>
+          <option value="medium" selected>中优先级</option>
+          <option value="low">低优先级</option>
+        </select>
+        <button class="add-button" type="submit">➕ 添加任务</button>
+      </form>
+
+      <nav class="filter-tabs" aria-label="任务筛选">
+        <button class="filter-button active" type="button" data-filter="all">全部</button>
+        <button class="filter-button" type="button" data-filter="pending">未完成</button>
+        <button class="filter-button" type="button" data-filter="progress">进行中</button>
+        <button class="filter-button" type="button" data-filter="completed">已完成</button>
+      </nav>
+
+      <div class="toolbar">
+        <button class="clear-all-button" id="clear-all-button" type="button">
+          全部清空
+        </button>
+      </div>
+
+      <ul class="todo-list" id="todo-list" aria-label="待办列表"></ul>
+      <p class="empty-state" id="empty-state">清单空空的，先添加一个小目标吧。</p>
+      <section class="overall-progress" aria-label="总进度">
+        <div class="overall-progress-header">
+          <span>总进度</span>
+          <span class="overall-progress-value" id="overall-progress-value">0%</span>
+        </div>
+        <div class="overall-progress-track">
+          <div class="overall-progress-bar" id="overall-progress-bar"></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="view trash-view hidden" id="trash-view" aria-label="回收站">
+      <div class="trash-header">
+        <h2 class="trash-title">回收站</h2>
+        <button class="back-button" id="back-to-list-button" type="button">返回清单</button>
+      </div>
+      <ul class="trash-list" id="trash-list" aria-label="回收站任务列表"></ul>
+      <p class="empty-state" id="trash-empty-state">回收站是空的。</p>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "todo-app-items";
+    const TRASH_STORAGE_KEY = "todo-app-recycle-bin";
+    const listView = document.getElementById("list-view");
+    const trashView = document.getElementById("trash-view");
+    const form = document.getElementById("todo-form");
+    const input = document.getElementById("todo-input");
+    const prioritySelect = document.getElementById("priority-select");
+    const list = document.getElementById("todo-list");
+    const trashList = document.getElementById("trash-list");
+    const emptyState = document.getElementById("empty-state");
+    const trashEmptyState = document.getElementById("trash-empty-state");
+    const activeCount = document.getElementById("active-count");
+    const completedCount = document.getElementById("completed-count");
+    const clearAllButton = document.getElementById("clear-all-button");
+    const recycleBinButton = document.getElementById("recycle-bin-button");
+    const backToListButton = document.getElementById("back-to-list-button");
+    const filterButtons = document.querySelectorAll(".filter-button");
+    const overallProgressValue = document.getElementById("overall-progress-value");
+    const overallProgressBar = document.getElementById("overall-progress-bar");
+    const PRIORITY_LABELS = {
+      high: "高优先级",
+      medium: "中优先级",
+      low: "低优先级"
+    };
+    const PRIORITY_SHORT_LABELS = {
+      high: "高",
+      medium: "中",
+      low: "低"
+    };
+    const ICONS = {
+      edit: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>',
+      trash: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 16H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>',
+      gear: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"></path><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2 2 0 0 1-2.82 2.82l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.66V21a2 2 0 0 1-4 0v-.1A1.8 1.8 0 0 0 8.9 19.3a1.8 1.8 0 0 0-1.98.36l-.04.04a2 2 0 0 1-2.82-2.82l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.66-1.1H3a2 2 0 0 1 0-4h.1A1.8 1.8 0 0 0 4.7 8.9a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2 2 0 1 1 2.82-2.82l.04.04A1.8 1.8 0 0 0 8.9 4.6 1.8 1.8 0 0 0 9.9 3.1V3a2 2 0 0 1 4 0v.1A1.8 1.8 0 0 0 15 4.6a1.8 1.8 0 0 0 1.98-.36l.04-.04a2 2 0 0 1 2.82 2.82l-.04.04a1.8 1.8 0 0 0-.36 1.98 1.8 1.8 0 0 0 1.66 1.1H21a2 2 0 0 1 0 4h-.1A1.8 1.8 0 0 0 19.4 15Z"></path></svg>'
+    };
+    const FILTER_LABELS = {
+      all: "全部",
+      pending: "未完成",
+      progress: "进行中",
+      completed: "已完成"
+    };
+    const CLEAR_LABELS = {
+      all: "清空全部",
+      pending: "清空未完成",
+      progress: "清空进行中",
+      completed: "清空已完成"
+    };
+
+    let todos = loadTodos();
+    let recycledTodos = loadRecycledTodos();
+    let activeFilter = "all";
+    let currentView = "list";
+
+    function loadTodos() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved).map(normalizeTodo) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function loadRecycledTodos() {
+      try {
+        const saved = localStorage.getItem(TRASH_STORAGE_KEY);
+        return saved ? JSON.parse(saved).map(normalizeRecycledTodo) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function normalizeTodo(todo) {
+      const completed = Boolean(todo.completed);
+      const progress = completed ? 100 : normalizeProgress(todo.progress);
+
+      return {
+        ...todo,
+        completed,
+        progress,
+        priority: PRIORITY_LABELS[todo.priority] ? todo.priority : "medium"
+      };
+    }
+
+    function normalizeRecycledTodo(todo) {
+      return {
+        ...normalizeTodo(todo),
+        recycleId: todo.recycleId || generateId(),
+        recycledAt: todo.recycledAt || Date.now()
+      };
+    }
+
+    function normalizeProgress(progress) {
+      const numericProgress = Number(progress);
+      return [25, 50, 75].includes(numericProgress) ? numericProgress : 0;
+    }
+
+    function saveTodos() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    }
+
+    function saveRecycledTodos() {
+      localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(recycledTodos));
+    }
+
+    function generateId() {
+      return globalThis.crypto && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
+    }
+
+    function createTodo(text, priority) {
+      return {
+        id: generateId(),
+        text,
+        priority,
+        progress: 0,
+        completed: false
+      };
+    }
+
+    function getTodoState(todo) {
+      if (todo.completed) return "completed";
+      return todo.progress > 0 ? "progress" : "pending";
+    }
+
+    function getTodoProgress(todo) {
+      return todo.completed ? 100 : todo.progress;
+    }
+
+    function getVisibleTodos() {
+      if (activeFilter === "all") return todos;
+      return todos.filter((todo) => getTodoState(todo) === activeFilter);
+    }
+
+    function getOverallProgress() {
+      if (!todos.length) return 0;
+      const totalProgress = todos.reduce((sum, todo) => sum + getTodoProgress(todo), 0);
+      return Math.round(totalProgress / todos.length);
+    }
+
+    function render() {
+      listView.classList.toggle("hidden", currentView !== "list");
+      trashView.classList.toggle("hidden", currentView !== "trash");
+      recycleBinButton.classList.toggle("hidden", currentView === "trash");
+      recycleBinButton.title = `回收站（${recycledTodos.length}）`;
+      recycleBinButton.setAttribute("aria-label", `打开回收站，当前有 ${recycledTodos.length} 个任务`);
+
+      if (currentView === "trash") {
+        renderTrash();
+        return;
+      }
+
+      list.innerHTML = "";
+      const visibleTodos = getVisibleTodos();
+
+      visibleTodos.forEach((todo) => {
+        const todoState = getTodoState(todo);
+        const todoProgress = getTodoProgress(todo);
+        const item = document.createElement("li");
+        item.className = `todo-item priority-${todo.priority}${todo.completed ? " completed" : ""}`;
+        item.style.setProperty("--progress-width", `${todoProgress}%`);
+        item.addEventListener("click", (event) => updateTodoProgressFromClick(todo.id, event, item));
+
+        const checkbox = document.createElement("input");
+        checkbox.className = "todo-checkbox";
+        checkbox.type = "checkbox";
+        checkbox.checked = todo.completed;
+        checkbox.setAttribute("aria-label", todo.completed ? "标记为未完成" : "标记为完成");
+        checkbox.addEventListener("click", (event) => event.stopPropagation());
+        checkbox.addEventListener("change", () => toggleTodo(todo.id));
+
+        const content = document.createElement("div");
+        content.className = "todo-content";
+
+        const text = document.createElement("span");
+        text.className = "todo-text";
+        text.textContent = todo.text;
+
+        const priority = document.createElement("span");
+        priority.className = `priority-badge priority-${todo.priority}`;
+        priority.textContent = PRIORITY_SHORT_LABELS[todo.priority];
+
+        const status = document.createElement("span");
+        status.className = `status-badge status-${todoState}`;
+        status.textContent = `${FILTER_LABELS[todoState]} ${todoProgress}%`;
+
+        const meta = document.createElement("div");
+        meta.className = "todo-meta";
+        meta.append(priority, status);
+
+        content.append(text, meta);
+
+        const actions = document.createElement("div");
+        actions.className = "todo-actions";
+        actions.addEventListener("click", (event) => event.stopPropagation());
+
+        const editButton = document.createElement("button");
+        editButton.className = "edit-button";
+        editButton.type = "button";
+        editButton.innerHTML = ICONS.edit;
+        editButton.title = "编辑";
+        editButton.setAttribute("aria-label", `编辑任务：${todo.text}`);
+        editButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          editTodo(todo.id);
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "delete-button";
+        deleteButton.type = "button";
+        deleteButton.innerHTML = ICONS.trash;
+        deleteButton.title = "删除";
+        deleteButton.setAttribute("aria-label", `删除任务：${todo.text}`);
+        deleteButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          deleteTodo(todo.id);
+        });
+
+        const priorityAction = document.createElement("div");
+        priorityAction.className = "priority-action";
+
+        const priorityButton = document.createElement("button");
+        priorityButton.className = "priority-action-button";
+        priorityButton.type = "button";
+        priorityButton.innerHTML = ICONS.gear;
+        priorityButton.title = "调整优先级";
+        priorityButton.setAttribute("aria-label", `调整任务优先级：${todo.text}`);
+
+        const priorityMenu = document.createElement("div");
+        priorityMenu.className = "priority-menu";
+        priorityMenu.setAttribute("role", "menu");
+
+        Object.keys(PRIORITY_LABELS).forEach((priorityKey) => {
+          const option = document.createElement("button");
+          option.className = `priority-option${todo.priority === priorityKey ? " active" : ""}`;
+          option.type = "button";
+          option.setAttribute("role", "menuitem");
+          option.setAttribute("aria-label", `设为${PRIORITY_LABELS[priorityKey]}`);
+
+          const dot = document.createElement("span");
+          dot.className = `priority-dot priority-${priorityKey}`;
+
+          const label = document.createElement("span");
+          label.textContent = PRIORITY_SHORT_LABELS[priorityKey];
+
+          option.append(dot, label);
+          option.addEventListener("click", (event) => {
+            event.stopPropagation();
+            changeTodoPriority(todo.id, priorityKey);
+          });
+
+          priorityMenu.appendChild(option);
+        });
+
+        priorityButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const isOpen = priorityMenu.classList.contains("open");
+          closePriorityMenus();
+          priorityMenu.classList.toggle("open", !isOpen);
+          actions.classList.toggle("menu-open", !isOpen);
+        });
+
+        priorityAction.append(priorityButton, priorityMenu);
+        actions.append(editButton, deleteButton, priorityAction);
+
+        item.append(checkbox, content, actions);
+        list.appendChild(item);
+      });
+
+      const completed = todos.filter((todo) => todo.completed).length;
+      const active = todos.length - completed;
+      const overallProgress = getOverallProgress();
+      activeCount.textContent = active;
+      completedCount.textContent = completed;
+      clearAllButton.disabled = visibleTodos.length === 0;
+      clearAllButton.textContent = CLEAR_LABELS[activeFilter];
+      overallProgressValue.textContent = `${overallProgress}%`;
+      overallProgressBar.style.width = `${overallProgress}%`;
+      updateFilterTabs();
+      updateEmptyState(visibleTodos.length);
+    }
+
+    function renderTrash() {
+      trashList.innerHTML = "";
+
+      recycledTodos.forEach((todo) => {
+        const todoState = getTodoState(todo);
+        const todoProgress = getTodoProgress(todo);
+        const item = document.createElement("li");
+        item.className = `trash-item priority-${todo.priority}`;
+        item.style.setProperty("--progress-width", `${todoProgress}%`);
+
+        const content = document.createElement("div");
+        content.className = "trash-content";
+
+        const text = document.createElement("span");
+        text.className = "todo-text";
+        text.textContent = todo.text;
+
+        const meta = document.createElement("span");
+        meta.className = "trash-meta";
+        meta.textContent = `${PRIORITY_LABELS[todo.priority]} · ${FILTER_LABELS[todoState]} ${todoProgress}%`;
+
+        const restoreButton = document.createElement("button");
+        restoreButton.className = "restore-button";
+        restoreButton.type = "button";
+        restoreButton.textContent = "恢复";
+        restoreButton.addEventListener("click", () => restoreTodo(todo.recycleId));
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "permanent-delete-button";
+        deleteButton.type = "button";
+        deleteButton.textContent = "彻底删除";
+        deleteButton.addEventListener("click", () => permanentlyDeleteTodo(todo.recycleId));
+
+        content.append(text, meta);
+        item.append(content, restoreButton, deleteButton);
+        trashList.appendChild(item);
+      });
+
+      trashEmptyState.classList.toggle("visible", recycledTodos.length === 0);
+    }
+
+    function updateFilterTabs() {
+      const counts = {
+        all: todos.length,
+        pending: todos.filter((todo) => getTodoState(todo) === "pending").length,
+        progress: todos.filter((todo) => getTodoState(todo) === "progress").length,
+        completed: todos.filter((todo) => getTodoState(todo) === "completed").length
+      };
+
+      filterButtons.forEach((button) => {
+        const filter = button.dataset.filter;
+        button.textContent = `${FILTER_LABELS[filter]} ${counts[filter]}`;
+        button.classList.toggle("active", filter === activeFilter);
+      });
+    }
+
+    function updateEmptyState(visibleCount) {
+      const messages = {
+        all: "清单空空的，先添加一个小目标吧。",
+        pending: "没有未完成任务，节奏不错。",
+        progress: "还没有进行中的任务，点击任务卡片可以设置进度。",
+        completed: "还没有已完成任务，勾选任务后会出现在这里。"
+      };
+
+      emptyState.textContent = messages[activeFilter];
+      emptyState.classList.toggle("visible", visibleCount === 0);
+    }
+
+    function addTodo(text, priority) {
+      todos = [createTodo(text, priority), ...todos];
+      saveTodos();
+      render();
+    }
+
+    function toggleTodo(id) {
+      todos = todos.map((todo) =>
+        todo.id === id
+          ? {
+              ...todo,
+              completed: !todo.completed,
+              progress: todo.completed ? 0 : 100
+            }
+          : todo
+      );
+      saveTodos();
+      render();
+    }
+
+    function updateTodoProgressFromClick(id, event, item) {
+      const todo = todos.find((currentTodo) => currentTodo.id === id);
+      if (!todo || todo.completed) return;
+
+      const rect = item.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+      const nextProgress = ratio <= 0.25 ? 25 : ratio <= 0.5 ? 50 : 75;
+
+      todos = todos.map((currentTodo) =>
+        currentTodo.id === id
+          ? { ...currentTodo, completed: false, progress: nextProgress }
+          : currentTodo
+      );
+      saveTodos();
+      render();
+    }
+
+    function deleteTodo(id) {
+      const deletedTodo = todos.find((todo) => todo.id === id);
+      if (!deletedTodo) return;
+
+      moveTodosToRecycleBin([deletedTodo]);
+      todos = todos.filter((todo) => todo.id !== id);
+      saveTodos();
+      render();
+    }
+
+    function editTodo(id) {
+      const todo = todos.find((item) => item.id === id);
+      if (!todo) return;
+
+      const nextText = prompt("修改任务内容：", todo.text);
+      if (nextText === null) return;
+
+      const trimmedText = nextText.trim();
+      if (!trimmedText) {
+        alert("任务内容不能为空。");
+        return;
+      }
+
+      todos = todos.map((item) =>
+        item.id === id ? { ...item, text: trimmedText } : item
+      );
+      saveTodos();
+      render();
+    }
+
+    function changeTodoPriority(id, priority) {
+      todos = todos.map((todo) =>
+        todo.id === id ? { ...todo, priority } : todo
+      );
+      saveTodos();
+      render();
+    }
+
+    function closePriorityMenus() {
+      document.querySelectorAll(".priority-menu.open").forEach((menu) => {
+        menu.classList.remove("open");
+      });
+      document.querySelectorAll(".todo-actions.menu-open").forEach((actions) => {
+        actions.classList.remove("menu-open");
+      });
+    }
+
+    function clearAllTodos() {
+      const todosToClear = getVisibleTodos();
+      if (!todosToClear.length) return;
+      if (!confirm(`确定要${CLEAR_LABELS[activeFilter]}吗？任务会先进入回收站。`)) return;
+
+      const clearIds = new Set(todosToClear.map((todo) => todo.id));
+      moveTodosToRecycleBin(todosToClear);
+      todos = todos.filter((todo) => !clearIds.has(todo.id));
+      saveTodos();
+      render();
+    }
+
+    function moveTodosToRecycleBin(items) {
+      const recycledItems = items.map((todo) => ({
+        ...todo,
+        recycleId: generateId(),
+        recycledAt: Date.now()
+      }));
+
+      recycledTodos = [...recycledItems, ...recycledTodos];
+      saveRecycledTodos();
+    }
+
+    function restoreTodo(recycleId) {
+      const recycledTodo = recycledTodos.find((todo) => todo.recycleId === recycleId);
+      if (!recycledTodo) return;
+
+      const { recycleId: _recycleId, recycledAt: _recycledAt, ...todoToRestore } = recycledTodo;
+      const restoredTodo = todos.some((todo) => todo.id === todoToRestore.id)
+        ? { ...todoToRestore, id: generateId() }
+        : todoToRestore;
+
+      todos = [normalizeTodo(restoredTodo), ...todos];
+      recycledTodos = recycledTodos.filter((todo) => todo.recycleId !== recycleId);
+      saveTodos();
+      saveRecycledTodos();
+      render();
+    }
+
+    function permanentlyDeleteTodo(recycleId) {
+      const recycledTodo = recycledTodos.find((todo) => todo.recycleId === recycleId);
+      if (!recycledTodo) return;
+      if (!confirm(`确定要彻底删除“${recycledTodo.text}”吗？这个操作不能撤销。`)) return;
+
+      recycledTodos = recycledTodos.filter((todo) => todo.recycleId !== recycleId);
+      saveRecycledTodos();
+      render();
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const text = input.value.trim();
+
+      if (!text) {
+        input.focus();
+        return;
+      }
+
+      addTodo(text, prioritySelect.value);
+      input.value = "";
+      prioritySelect.value = "medium";
+      input.focus();
+    });
+
+    clearAllButton.addEventListener("click", clearAllTodos);
+    recycleBinButton.addEventListener("click", () => {
+      currentView = "trash";
+      closePriorityMenus();
+      render();
+    });
+    backToListButton.addEventListener("click", () => {
+      currentView = "list";
+      render();
+    });
+    document.addEventListener("click", closePriorityMenus);
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeFilter = button.dataset.filter;
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
