@@ -141,6 +141,7 @@
 
     .add-button,
     .header-icon-button,
+    .sort-button,
     .clear-all-button,
     .filter-button,
     .back-button,
@@ -174,6 +175,7 @@
 
     .add-button:active,
     .header-icon-button:active,
+    .sort-button:active,
     .clear-all-button:active,
     .filter-button:active,
     .back-button:active,
@@ -358,6 +360,7 @@
       line-height: 1.4;
     }
 
+    .sort-button,
     .clear-all-button {
       border-radius: 14px;
       padding: 10px 14px;
@@ -367,6 +370,12 @@
       font-size: 14px;
       font-weight: 700;
       box-shadow: 0 8px 18px rgba(34, 109, 180, 0.08);
+    }
+
+    .sort-button:hover {
+      background: #e3f2ff;
+      box-shadow: 0 10px 22px rgba(34, 109, 180, 0.12);
+      transform: translateY(-1px);
     }
 
     .clear-all-button {
@@ -769,6 +778,7 @@
         grid-template-columns: repeat(2, 1fr);
       }
 
+      .sort-button,
       .clear-all-button {
         width: 100%;
         min-height: 44px;
@@ -853,6 +863,9 @@
       </nav>
 
       <div class="toolbar">
+        <button class="sort-button" id="sort-button" type="button">
+          优先级降序
+        </button>
         <button class="clear-all-button" id="clear-all-button" type="button">
           全部清空
         </button>
@@ -895,6 +908,7 @@
     const trashEmptyState = document.getElementById("trash-empty-state");
     const activeCount = document.getElementById("active-count");
     const completedCount = document.getElementById("completed-count");
+    const sortButton = document.getElementById("sort-button");
     const clearAllButton = document.getElementById("clear-all-button");
     const recycleBinButton = document.getElementById("recycle-bin-button");
     const backToListButton = document.getElementById("back-to-list-button");
@@ -910,6 +924,11 @@
       high: "高",
       medium: "中",
       low: "低"
+    };
+    const PRIORITY_ORDER = {
+      high: 3,
+      medium: 2,
+      low: 1
     };
     const ICONS = {
       edit: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>',
@@ -928,10 +947,15 @@
       progress: "清空进行中",
       completed: "清空已完成"
     };
+    const SORT_DIRECTION_LABELS = {
+      desc: "优先级降序",
+      asc: "优先级升序"
+    };
 
     let todos = loadTodos();
     let recycledTodos = loadRecycledTodos();
     let activeFilter = "all";
+    let sortDirection = "desc";
     let currentView = "list";
 
     function loadTodos() {
@@ -1011,8 +1035,14 @@
     }
 
     function getVisibleTodos() {
-      if (activeFilter === "all") return todos;
-      return todos.filter((todo) => getTodoState(todo) === activeFilter);
+      const filteredTodos = activeFilter === "all"
+        ? todos
+        : todos.filter((todo) => getTodoState(todo) === activeFilter);
+
+      return [...filteredTodos].sort((first, second) => {
+        const diff = PRIORITY_ORDER[second.priority] - PRIORITY_ORDER[first.priority];
+        return sortDirection === "desc" ? diff : -diff;
+      });
     }
 
     function getOverallProgress() {
@@ -1156,6 +1186,7 @@
       const overallProgress = getOverallProgress();
       activeCount.textContent = active;
       completedCount.textContent = completed;
+      sortButton.textContent = SORT_DIRECTION_LABELS[sortDirection];
       clearAllButton.disabled = visibleTodos.length === 0;
       clearAllButton.textContent = CLEAR_LABELS[activeFilter];
       overallProgressValue.textContent = `${overallProgress}%`;
@@ -1384,6 +1415,10 @@
     });
 
     clearAllButton.addEventListener("click", clearAllTodos);
+    sortButton.addEventListener("click", () => {
+      sortDirection = sortDirection === "desc" ? "asc" : "desc";
+      render();
+    });
     recycleBinButton.addEventListener("click", () => {
       currentView = "trash";
       closePriorityMenus();
