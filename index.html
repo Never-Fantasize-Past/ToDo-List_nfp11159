@@ -758,6 +758,114 @@
       transition: width 0.2s ease;
     }
 
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(31, 45, 61, 0.28);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal {
+      width: min(100%, 420px);
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 24px 60px rgba(31, 85, 130, 0.22);
+    }
+
+    .modal h2 {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 21px;
+      line-height: 1.3;
+    }
+
+    .modal-message {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .modal-input {
+      width: 100%;
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 14px;
+      color: var(--text);
+      background: var(--surface);
+      font: inherit;
+      outline: none;
+      box-shadow: 0 8px 18px rgba(20, 103, 176, 0.08);
+    }
+
+    .modal-input.hidden {
+      display: none;
+    }
+
+    .modal-input:focus {
+      border-color: var(--blue-500);
+      box-shadow: 0 0 0 4px rgba(45, 140, 255, 0.14);
+    }
+
+    .modal-error {
+      min-height: 20px;
+      margin: 8px 0 0;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .modal-cancel-button,
+    .modal-confirm-button {
+      border: 0;
+      border-radius: 13px;
+      padding: 10px 15px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .modal-cancel-button {
+      color: var(--blue-700);
+      background: #edf7ff;
+      border: 1px solid var(--blue-100);
+    }
+
+    .modal-confirm-button {
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
+      box-shadow: 0 10px 22px rgba(45, 140, 255, 0.22);
+    }
+
+    .modal-confirm-button.danger {
+      background: linear-gradient(135deg, #f04438, var(--danger));
+      box-shadow: 0 10px 22px rgba(229, 72, 77, 0.2);
+    }
+
+    .modal-cancel-button:hover,
+    .modal-confirm-button:hover {
+      transform: translateY(-1px);
+    }
+
     @media (max-width: 560px) {
       body {
         align-items: flex-start;
@@ -833,6 +941,15 @@
 
       .restore-button,
       .permanent-delete-button {
+        width: 100%;
+      }
+
+      .modal-actions {
+        flex-direction: column-reverse;
+      }
+
+      .modal-cancel-button,
+      .modal-confirm-button {
         width: 100%;
       }
     }
@@ -924,6 +1041,19 @@
       <ul class="trash-list" id="trash-list" aria-label="回收站任务列表"></ul>
       <p class="empty-state" id="trash-empty-state">回收站是空的。</p>
     </section>
+
+    <div class="modal-backdrop hidden" id="modal-backdrop">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <h2 id="modal-title">确认操作</h2>
+        <p class="modal-message" id="modal-message"></p>
+        <input class="modal-input hidden" id="modal-input" type="text" maxlength="120">
+        <p class="modal-error" id="modal-error"></p>
+        <div class="modal-actions">
+          <button class="modal-cancel-button" id="modal-cancel-button" type="button">取消</button>
+          <button class="modal-confirm-button" id="modal-confirm-button" type="button">确定</button>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script>
@@ -947,6 +1077,13 @@
     const priorityButtons = document.querySelectorAll(".priority-choice");
     const overallProgressValue = document.getElementById("overall-progress-value");
     const overallProgressBar = document.getElementById("overall-progress-bar");
+    const modalBackdrop = document.getElementById("modal-backdrop");
+    const modalTitle = document.getElementById("modal-title");
+    const modalMessage = document.getElementById("modal-message");
+    const modalInput = document.getElementById("modal-input");
+    const modalError = document.getElementById("modal-error");
+    const modalCancelButton = document.getElementById("modal-cancel-button");
+    const modalConfirmButton = document.getElementById("modal-confirm-button");
     const PRIORITY_LABELS = {
       high: "高优先级",
       medium: "中优先级",
@@ -990,6 +1127,7 @@
     let sortDirection = "desc";
     let selectedPriority = "medium";
     let currentView = "list";
+    let activeModal = null;
 
     function loadTodos() {
       try {
@@ -1343,18 +1481,21 @@
       render();
     }
 
-    function editTodo(id) {
+    async function editTodo(id) {
       const todo = todos.find((item) => item.id === id);
       if (!todo) return;
 
-      const nextText = prompt("修改任务内容：", todo.text);
+      const nextText = await openModal({
+        title: "编辑任务",
+        message: "修改任务内容",
+        input: true,
+        initialValue: todo.text,
+        confirmText: "保存",
+        required: true
+      });
       if (nextText === null) return;
 
       const trimmedText = nextText.trim();
-      if (!trimmedText) {
-        alert("任务内容不能为空。");
-        return;
-      }
 
       todos = todos.map((item) =>
         item.id === id ? { ...item, text: trimmedText } : item
@@ -1383,10 +1524,16 @@
       });
     }
 
-    function clearAllTodos() {
+    async function clearAllTodos() {
       const todosToClear = getVisibleTodos();
       if (!todosToClear.length) return;
-      if (!confirm(`确定要${CLEAR_LABELS[activeFilter]}吗？任务会先进入回收站。`)) return;
+      const confirmed = await openModal({
+        title: CLEAR_LABELS[activeFilter],
+        message: `确定要${CLEAR_LABELS[activeFilter]}吗？任务会先进入回收站。`,
+        confirmText: "确认清空",
+        danger: true
+      });
+      if (!confirmed) return;
 
       const clearIds = new Set(todosToClear.map((todo) => todo.id));
       moveTodosToRecycleBin(todosToClear);
@@ -1422,14 +1569,55 @@
       render();
     }
 
-    function permanentlyDeleteTodo(recycleId) {
+    async function permanentlyDeleteTodo(recycleId) {
       const recycledTodo = recycledTodos.find((todo) => todo.recycleId === recycleId);
       if (!recycledTodo) return;
-      if (!confirm(`确定要彻底删除“${recycledTodo.text}”吗？这个操作不能撤销。`)) return;
+      const confirmed = await openModal({
+        title: "彻底删除",
+        message: `确定要彻底删除“${recycledTodo.text}”吗？这个操作不能撤销。`,
+        confirmText: "彻底删除",
+        danger: true
+      });
+      if (!confirmed) return;
 
       recycledTodos = recycledTodos.filter((todo) => todo.recycleId !== recycleId);
       saveRecycledTodos();
       render();
+    }
+
+    function openModal(options) {
+      return new Promise((resolve) => {
+        activeModal = { resolve, options };
+        modalTitle.textContent = options.title;
+        modalMessage.textContent = options.message;
+        modalConfirmButton.textContent = options.confirmText || "确定";
+        modalConfirmButton.classList.toggle("danger", Boolean(options.danger));
+        modalError.textContent = "";
+
+        modalInput.classList.toggle("hidden", !options.input);
+        modalInput.value = options.initialValue || "";
+
+        modalBackdrop.classList.remove("hidden");
+
+        if (options.input) {
+          requestAnimationFrame(() => {
+            modalInput.focus();
+            modalInput.select();
+          });
+        } else {
+          requestAnimationFrame(() => modalConfirmButton.focus());
+        }
+      });
+    }
+
+    function closeModal(result) {
+      if (!activeModal) return;
+
+      activeModal.resolve(result);
+      activeModal = null;
+      modalBackdrop.classList.add("hidden");
+      modalInput.value = "";
+      modalError.textContent = "";
     }
 
     form.addEventListener("submit", (event) => {
@@ -1475,6 +1663,33 @@
         selectedPriority = button.dataset.priority;
         updatePriorityPicker();
       });
+    });
+
+    modalCancelButton.addEventListener("click", () => closeModal(null));
+    modalConfirmButton.addEventListener("click", () => {
+      if (!activeModal) return;
+
+      if (activeModal.options.input) {
+        const value = modalInput.value.trim();
+        if (activeModal.options.required && !value) {
+          modalError.textContent = "任务内容不能为空。";
+          modalInput.focus();
+          return;
+        }
+        closeModal(value);
+        return;
+      }
+
+      closeModal(true);
+    });
+    modalBackdrop.addEventListener("click", (event) => {
+      if (event.target === modalBackdrop) closeModal(null);
+    });
+    modalInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") modalConfirmButton.click();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && activeModal) closeModal(null);
     });
 
     function updatePriorityPicker() {
